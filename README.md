@@ -1,7 +1,7 @@
 # D2R-fast-launcher(暗黑2快捷登录器)
 github地址：https://github.com/faliny/D2R-fast-launcher
 
-#工具介绍
+# 工具介绍
 一款基于PowerShell脚本编写的暗黑2游戏快捷登录器，旨在帮助更多热爱暗黑2的游戏玩家一键多开，创造更好的游戏体验。
 本人这是第一次接触PowerShell，部分基础功能借鉴了Chobotz的源码（github地址：https://github.com/Chobotz/D2R-multiclient-tools）
 若发现bug或有改进建议，请留言交流。
@@ -23,16 +23,16 @@ github地址：https://github.com/faliny/D2R-fast-launcher
 ```
 
 # 使用截图
-#####1、登录管理器主界面
+1、登录管理器主界面
 ![登录管理器主界面](screenshot/main.png)
 
-#####2、添加/更新账号配置
+2、添加/更新账号配置
 ![添加/更新账号配置](screenshot/edit.png)
 
-#####3、查看账号配置
+3、查看账号配置
 ![查看账号配置](screenshot/overview.png)
 
-#####4、创建快捷方式到桌面
+4、创建快捷方式到桌面
 ![创建快捷方式到桌面](screenshot/link.png)
 
 # 对比chobotz版本的优势
