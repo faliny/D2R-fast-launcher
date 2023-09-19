@@ -289,7 +289,7 @@ function startFromConfig($startUserList)
     {
         $startUser = $startUser.trim()
         Write-Host "`n启动游戏，当前账号：$startUser"
-        Write-Host "启动过程中可以随时通过同时按下 Ctrl 和 C 终止启动。"
+        Write-Host "启动过程中可以随时通过同时按下 Ctrl + C 终止启动。"
 
         closeHandle
 
