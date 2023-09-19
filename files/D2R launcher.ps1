@@ -53,7 +53,7 @@ function init
 
     if (![System.IO.File]::Exists("$PSScriptRoot\D2R.exe"))
     {
-        Write-Host "`n错误:请将脚本放置在D2R安装目录，和D2R.exe在同一个文件夹下。"
+        Write-Host "`n错误:请将脚本和登录管理器等文件放置在D2R安装目录，和D2R.exe在同一个文件夹下。"
         Read-host "点击回车退出..."
         Exit
     }
