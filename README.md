@@ -1,7 +1,8 @@
 # D2R-fast-launcher(暗黑2快捷登录器)
 github地址：https://github.com/faliny/D2R-fast-launcher
 
-#工具介绍
+# 工具介绍
+
 这是一款基于PowerShell脚本编写的暗黑2游戏快捷登录器，旨在帮助更多热爱暗黑2的游戏玩家一键多开，创造更好的游戏体验：
 
 * 登录器会绕过战网程序直接启动并登录暗黑2游戏；
