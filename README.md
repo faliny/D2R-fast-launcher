@@ -29,17 +29,21 @@ github地址：https://github.com/faliny/D2R-fast-launcher
 - 若微软发布了新的handle64程序版本，可自行下载更新，地址：https://docs.microsoft.com/en-us/sysinternals/downloads/handle
 ```
 
-# 使用截图
-1. 登录管理器主界面
+# 工具截图
+1、登录管理器主界面
+
 ![登录管理器主界面](screenshot/main.png)
 
-2. 添加/更新账号配置
+2、添加/更新账号配置
+
 ![添加/更新账号配置](screenshot/edit.png)
 
-3. 查看账号配置
+3、查看账号配置
+
 ![查看账号配置](screenshot/overview.png)
 
-4. 创建快捷方式到桌面
+4、创建快捷方式到桌面
+
 ![创建快捷方式到桌面](screenshot/link.png)
 
 # 申明
