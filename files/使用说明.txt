@@ -1,15 +1,14 @@
 
 操作说明：
-
 1、将D2R launcher.ps1、handle64.exe、登录管理器.lnk和使用说明.txt四个文件复制到暗黑2游戏根目录
 2、运行登录管理器，根据提示操作即可
 
 
-
+最新版本：
+github地址：https://github.com/faliny/D2R-fast-launcher
 
 
 更新日志：
-
 V1.0  2023.09.16  初版。
 V1.1  2023.09.16  添加help选项，解决以-txt结尾的mod无法正常使用的问题。
 V1.2  2023.09.18  优化提示信息；优化启动配置。
