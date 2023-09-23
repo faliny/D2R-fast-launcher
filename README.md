@@ -46,9 +46,11 @@ github地址：https://github.com/faliny/D2R-fast-launcher
 ![创建单个快捷方式到桌面](screenshot/addLink1.png)
 
 5、创建一键全部启动快捷方式到桌面
+
 ![创建一键启动快捷方式到桌面](screenshot/addLink2.png)
 
 6、桌面快捷方式
+
 ![桌面快捷方式](screenshot/link.png)
 
 # 申明
