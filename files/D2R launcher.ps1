@@ -476,11 +476,7 @@ function update()
     }
     elseif ($op -eq 3)
     {
-        Do
-        {
-            $mod = Read-Host '请输入mod名称，名称取战网配置里-mod之后的所有信息'
-        }
-        while ( [string]::IsNullOrWhiteSpace($mod))
+        $mod = Read-Host '请输入mod名称，名称取战网配置里-mod之后的所有信息，改成不使用直接按回车'
         $null = [System.Text.WinApi]::WritePrivateProfileString($userName, "mod", $mod.Trim(), $script:userInfoFilePath)
     }
     elseif ($op -eq 4)
