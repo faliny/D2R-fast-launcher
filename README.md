@@ -33,17 +33,23 @@ github地址：https://github.com/faliny/D2R-fast-launcher
 
 ![登录管理器主界面](screenshot/main.png)
 
-2、添加/更新账号配置
+2、添加账号配置
 
-![添加/更新账号配置](screenshot/edit.png)
+![添加账号配置](screenshot/add.png)
 
 3、查看账号配置
 
 ![查看账号配置](screenshot/overview.png)
 
-4、创建快捷方式到桌面
+4、创建启动单个账号快捷方式到桌面
 
-![创建快捷方式到桌面](screenshot/link.png)
+![创建单个快捷方式到桌面](screenshot/addLink1.png)
+
+5、创建一键全部启动快捷方式到桌面
+![创建一键启动快捷方式到桌面](screenshot/addLink2.png)
+
+6、桌面快捷方式
+![桌面快捷方式](screenshot/link.png)
 
 # 申明
 非盈利性质工具，任何风险请自行承担
