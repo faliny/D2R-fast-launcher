@@ -1,5 +1,5 @@
 #== D2R multiclient transparent launcher by Chobot - https://github.com/Chobotz/D2R-multiclient-tools =====
-#== Update by faliny - https://github.com/faliny/D2R-fast-launcher =====
+#== Update to D2R fast launcher by faliny - https://github.com/faliny/D2R-fast-launcher =====
 
 param($operation, $param)
 
@@ -16,7 +16,6 @@ Add-Type -Namespace Util -Name WinApi -MemberDefinition @"
     [DllImport("user32.dll")]
     public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
 "@
-
 
 Add-Type -Namespace System.Text -Name WinApi -MemberDefinition @"
     [DllImport("Kernel32")]
@@ -319,8 +318,19 @@ function startFromConfig($startUserList)
     }
 }
 
+function checkExist($userName)
+{
+    if ( $script:userInfoMap.Contains($userName.Trim()))
+    {
+        Write-Host "`n该账号已存在"
+        return $true
+    }
+    return $false
+}
+
 function main
 {
+    clear
     init
     if ( [string]::IsNullOrWhiteSpace($operation))
     {
@@ -331,10 +341,11 @@ function main
     [1]  启动所有账号
     [2]  启动所有指定账号
     [3]  展示所有账号
-    [4]  添加/更新账号
-    [5]  删除账号
-    [6]  创建单个账号启动快捷方式到桌面
-    [7]  创建一键启动所有账号快捷方式到桌面
+    [4]  添加账号
+    [5]  修改账号
+    [6]  删除账号
+    [7]  创建单个账号启动快捷方式到桌面
+    [8]  创建一键启动所有账号快捷方式到桌面
     [0]  帮助
     `n"
 
@@ -360,14 +371,14 @@ function main
     }
 }
 
-function edit()
+function add()
 {
     Write-Host "`n"
     Do
     {
-        $userName = Read-Host '请输入准备添加/更新的账号'
+        $userName = Read-Host '请输入准备添加的账号'
     }
-    while ( [string]::IsNullOrWhiteSpace($userName) )
+    while ( [string]::IsNullOrWhiteSpace($userName) -or (checkExist $userName) )
 
     Do
     {
@@ -413,6 +424,80 @@ function edit()
     $null = [System.Text.WinApi]::WritePrivateProfileString($userName, "fullScreen", $userInfo["fullScreen"], $script:userInfoFilePath)
 
     Write-Host "`n添加/修改成功"
+    $tmp = Read-host "点击回车继续..."
+    main
+}
+
+function update()
+{
+    showUsersInfo
+    Do
+    {
+        $selectIndexes = Read-Host '请选择准备修改的账号，输入对应的序号'
+    }
+    while ( !(indexesAllValid $script:userList $selectIndexes))
+
+    $userName = $script:userList[$selectIndexes - 1]
+    Write-Host "`n"
+
+    $ops = @(1, 2, 3, 4)
+    Do
+    {
+        $op = Read-Host '请选择要修改的内容:
+    [1] 密码
+    [2] 服区
+    [3] mod
+    [4] 是否全屏启动
+请选择选项，输入对应的序号'
+    }
+    while ( !(indexesAllValid $ops $op))
+
+    Write-Host "`n"
+    if ($op -eq 1)
+    {
+        Do
+        {
+            $password = Read-Host '请输入新的密码' -AsSecureString
+        }
+        while ( [string]::IsNullOrWhiteSpace($password))
+
+        $password = $password | ConvertFrom-SecureString
+        $null = [System.Text.WinApi]::WritePrivateProfileString($userName, "password", $password, $script:userInfoFilePath)
+    }
+    elseif ($op -eq 2)
+    {
+        showRegions
+        Do
+        {
+            $regionIndex = Read-Host '请选择服区，输入对应的序号'
+        }
+        while ( !(indexesAllValid $script:regionList $regionIndex))
+        $null = [System.Text.WinApi]::WritePrivateProfileString($userName, "region", $script:regionList[$regionIndex - 1], $script:userInfoFilePath)
+    }
+    elseif ($op -eq 3)
+    {
+        Do
+        {
+            $mod = Read-Host '请输入mod名称，名称取战网配置里-mod之后的所有信息'
+        }
+        while ( [string]::IsNullOrWhiteSpace($mod))
+        $null = [System.Text.WinApi]::WritePrivateProfileString($userName, "mod", $mod.Trim(), $script:userInfoFilePath)
+    }
+    elseif ($op -eq 4)
+    {
+        $fullScreenConfigs = @("1", "")
+        Do
+        {
+            $fullScreen = Read-Host '是否全屏启动游戏，选项如下:
+    [1] 是
+    [2] 否
+请选择选项，输入对应的序号'
+        }
+        while ( !(indexesAllValid $fullScreenConfigs $fullScreen))
+        $null = [System.Text.WinApi]::WritePrivateProfileString($userName, "fullScreen", $fullScreenConfigs[$fullScreen - 1], $script:userInfoFilePath)
+    }
+
+    Write-Host "`n修改完成"
     $tmp = Read-host "点击回车继续..."
     main
 }
@@ -614,15 +699,16 @@ function show
 function help
 {
     Write-Host "`n"
+    Write-Host "    帮助说明：`n"
     Write-Host "    [1] 首次使用登录器，请先添加账号，把所有个人账号配置依次录入；"
-    Write-Host "    [2] 添加账号和修改账号配置都是选择`“添加/更新账号`”，对于修改配置，可直接操作同一目录下的user_info.ini文件；"
-    Write-Host "    [3] 添加/更新账号时，若mod配置需携带-txt后缀，则把-txt作为mod名字一并填入，如：hongye -txt；"
-    Write-Host "    [4] 对于新建快捷方式到桌面，可以选择把所有账号各建一个快捷方式，也可以建一个一键启动所有账号的快捷方式；"
-    Write-Host "    [5] 新建的启动单个账号快捷方式不会被后续添加/修改账号配置所影响，只要账号不删除就可以一直使用；"
-    Write-Host "    [6] 新建的一键全部启动快捷方式不会被后续所有的账号操作所影响，配置文件里有几个账号信息就会启动几个；"
-    Write-Host "    [7] 本启动器的原理不涉及作弊，理论上没有封号风险，请放心使用。"
-    Write-Host "`n    注意：不要在打开战网的情况下通过启动器启动游戏，若需使用，请先关闭战网程序"
+    Write-Host "    [2] 添加或修改账号时，若mod配置需携带-txt后缀，则把-txt作为mod名字一并填入，如：hongye -txt；"
+    Write-Host "    [3] 对于新建快捷方式到桌面，可以选择把所有账号各建一个快捷方式，也可以建一个一键启动所有账号的快捷方式；"
+    Write-Host "    [4] 新建的启动单个账号快捷方式不会被后续添加/修改账号配置所影响，只要账号不删除就可以一直使用；"
+    Write-Host "    [5] 新建的一键全部启动快捷方式不会被后续所有的账号操作所影响，录入过几个账号就会启动几个；"
+    Write-Host "    [6] 本启动器的原理不涉及作弊，理论上没有封号风险。"
 
+    Write-Host "`n"
+    Write-Host "    非盈利性质工具，任何风险请自行承担"
     Write-Host "`n"
 
     Read-host "点击回车继续..."
@@ -633,10 +719,11 @@ $script:allOperation = @{
     "1" = (gi function:startAll)
     "2" = (gi function:start)
     "3" = (gi function:show)
-    "4" = (gi function:edit)
-    "5" = (gi function:delete)
-    "6" = (gi function:createRef)
-    "7" = (gi function:createBatchRef)
+    "4" = (gi function:add)
+    "5" = (gi function:update)
+    "6" = (gi function:delete)
+    "7" = (gi function:createRef)
+    "8" = (gi function:createBatchRef)
     "0" = (gi function:help)
 }
 
