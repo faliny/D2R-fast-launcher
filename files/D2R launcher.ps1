@@ -328,6 +328,14 @@ function checkExist($userName)
     return $false
 }
 
+function saveConfig($modules, $key, $value)
+{
+    foreach ($module in $modules)
+    {
+        $null = [System.Text.WinApi]::WritePrivateProfileString($module, $key, $value, $script:userInfoFilePath)
+    }
+}
+
 function main
 {
     clear
@@ -418,10 +426,10 @@ function add()
     }
 
     $userName = $userName.trim()
-    $null = [System.Text.WinApi]::WritePrivateProfileString($userName, "password", $userInfo["password"], $script:userInfoFilePath)
-    $null = [System.Text.WinApi]::WritePrivateProfileString($userName, "region", $userInfo["region"], $script:userInfoFilePath)
-    $null = [System.Text.WinApi]::WritePrivateProfileString($userName, "mod", $userInfo["mod"], $script:userInfoFilePath)
-    $null = [System.Text.WinApi]::WritePrivateProfileString($userName, "fullScreen", $userInfo["fullScreen"], $script:userInfoFilePath)
+    saveConfig $userName "password" $userInfo["password"]
+    saveConfig $userName "region" $userInfo["region"]
+    saveConfig $userName "mod" $userInfo["mod"]
+    saveConfig $userName "fullScreen" $userInfo["fullScreen"]
 
     Write-Host "`n添加/修改成功"
     $tmp = Read-host "点击回车继续..."
@@ -433,11 +441,22 @@ function update()
     showUsersInfo
     Do
     {
-        $selectIndexes = Read-Host '请选择准备修改的账号，输入对应的序号'
+        $selectIndexes = Read-Host '请选择要修改的账号，输入对应序号，以空格间隔（输入0代表全选）'
     }
-    while ( !(indexesAllValid $script:userList $selectIndexes))
+    while ($selectIndexes -ne 0 -and !(indexesAllValid $script:userList $selectIndexes))
 
-    $userName = $script:userList[$selectIndexes - 1]
+    $userNames = @()
+    if ($selectIndexes -eq 0)
+    {
+        $userNames = $script:userList
+    }
+    else
+    {
+        $selectIndexes.Split(' ') | foreach {
+            $userNames += $script:userList[$_ - 1]
+        }
+    }
+
     Write-Host "`n"
 
     $ops = @(1, 2, 3, 4)
@@ -462,7 +481,7 @@ function update()
         while ( [string]::IsNullOrWhiteSpace($password))
 
         $password = $password | ConvertFrom-SecureString
-        $null = [System.Text.WinApi]::WritePrivateProfileString($userName, "password", $password, $script:userInfoFilePath)
+        saveConfig $userNames "password" $password
     }
     elseif ($op -eq 2)
     {
@@ -472,12 +491,12 @@ function update()
             $regionIndex = Read-Host '请选择服区，输入对应的序号'
         }
         while ( !(indexesAllValid $script:regionList $regionIndex))
-        $null = [System.Text.WinApi]::WritePrivateProfileString($userName, "region", $script:regionList[$regionIndex - 1], $script:userInfoFilePath)
+        saveConfig $userNames "region" $script:regionList[$regionIndex - 1]
     }
     elseif ($op -eq 3)
     {
-        $mod = Read-Host '请输入mod名称，名称取战网配置里-mod之后的所有信息，改成不使用直接按回车'
-        $null = [System.Text.WinApi]::WritePrivateProfileString($userName, "mod", $mod.Trim(), $script:userInfoFilePath)
+        $mod = Read-Host '请输入mod名称，名称取战网配置里-mod之后的所有信息，想删除mod直接按回车'
+        saveConfig $userNames "mod" $mod.Trim()
     }
     elseif ($op -eq 4)
     {
@@ -490,7 +509,7 @@ function update()
 请选择选项，输入对应的序号'
         }
         while ( !(indexesAllValid $fullScreenConfigs $fullScreen))
-        $null = [System.Text.WinApi]::WritePrivateProfileString($userName, "fullScreen", $fullScreenConfigs[$fullScreen - 1], $script:userInfoFilePath)
+        saveConfig $userNames "fullScreen" $fullScreenConfigs[$fullScreen - 1]
     }
 
     Write-Host "`n修改完成"
