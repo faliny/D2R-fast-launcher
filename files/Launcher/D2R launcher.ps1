@@ -1,7 +1,7 @@
 #== D2R multiclient transparent launcher by Chobot - https://github.com/Chobotz/D2R-multiclient-tools =====
 #== Update to D2R fast launcher by faliny - https://github.com/faliny/D2R-fast-launcher =====
 
-param($operation, $param)
+param($operation, $param1, $param2)
 
 Add-Type -TypeDefinition @"
     using System;
@@ -30,6 +30,7 @@ Add-Type -Namespace System.Text -Name WinApi -MemberDefinition @"
 
 clear
 
+$script:d2rRoot = $PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf('\'))
 $script:userInfoFilePath = $PSScriptRoot + "\user_info.ini"
 $script:defaultRegion = "kr"
 $script:userList = New-Object System.Collections.ArrayList
@@ -40,26 +41,41 @@ $script:regionDescMap = [ordered]@{
     "eu" = "欧服"
     "us" = "美服"
 }
-$script:allOperation = @{ }
 $script:buff = New-Object System.Text.StringBuilder(1024)
+
+function getConfig($module, $key)
+{
+    $null = [System.Text.WinApi]::GetPrivateProfileString($module, $key, "", $script:buff, $script:buff.Capacity, $script:userInfoFilePath)
+    return $script:buff.tostring()
+}
+
+function saveConfig($module, $key, $value)
+{
+    $null = [System.Text.WinApi]::WritePrivateProfileString($module, $key, $value, $script:userInfoFilePath)
+}
+
+function deleteModule($module)
+{
+    $null = [System.Text.WinApi]::WritePrivateProfileSection($module, $null, $script:userInfoFilePath)
+}
 
 function init
 {
     if (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]"Administrator"))
     {
-        Start-Process powershell.exe "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" $operation $param" -Verb RunAs; exit
+        Start-Process powershell.exe "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" $operation $param1 $param2" -Verb RunAs; exit
     }
 
-    if (![System.IO.File]::Exists("$PSScriptRoot\D2R.exe"))
+    if (![System.IO.File]::Exists("$script:d2rRoot\D2R.exe"))
     {
-        Write-Host "`n错误:请将脚本和登录管理器等文件放置在D2R安装目录，和D2R.exe在同一个文件夹下。"
+        Write-Host "`n错误:请将快捷登录器文件夹放置在D2R根目录下"
         Read-host "点击回车退出..."
         Exit
     }
 
     if (![System.IO.File]::Exists("$PSScriptRoot\handle64.exe"))
     {
-        Write-Host "`n错误:请下载handle64.exe并放置在D2R安装目录，和D2R.exe在同一个文件夹下。下载地址: https://docs.microsoft.com/en-us/sysinternals/downloads/handle"
+        Write-Host "`n错误:请下载handle64.exe并放置在D2R根目录的Launcher文件夹下，和脚本在同一个文件夹。下载地址: https://docs.microsoft.com/en-us/sysinternals/downloads/handle"
         Read-host "点击回车退出..."
         Exit
     }
@@ -97,31 +113,27 @@ function init
     {
         foreach ($user in $users)
         {
-            $null = [System.Text.WinApi]::GetPrivateProfileString($user, "password", "", $script:buff, $script:buff.Capacity, $script:userInfoFilePath)
-            $password = $script:buff.tostring()
+            $password = getConfig $user "password"
             if ( [string]::IsNullOrWhiteSpace($password))
             {
                 continue
             }
             $userInfo = @{ "password" = $password }
 
-            $null = [System.Text.WinApi]::GetPrivateProfileString($user, "region", "", $script:buff, $script:buff.Capacity, $script:userInfoFilePath)
-            $region = $script:buff.tostring()
+            $region = getConfig $user "region"
             if ( [string]::IsNullOrWhiteSpace($region))
             {
                 $region = "$defaultRegion"
             }
             $userInfo.add("region", $region)
 
-            $null = [System.Text.WinApi]::GetPrivateProfileString($user, "mod", "", $script:buff, $script:buff.Capacity, $script:userInfoFilePath)
-            $mod = $script:buff.tostring()
+            $mod = getConfig $user "mod"
             if (![string]::IsNullOrWhiteSpace($mod))
             {
                 $userInfo.add("mod", $mod)
             }
 
-            $null = [System.Text.WinApi]::GetPrivateProfileString($user, "fullScreen", "", $script:buff, $script:buff.Capacity, $script:userInfoFilePath)
-            $fullScreen = $script:buff.tostring()
+            $fullScreen = getConfig $user "fullScreen"
             if (![string]::IsNullOrWhiteSpace($fullScreen))
             {
                 $userInfo.add("fullScreen", $fullScreen)
@@ -212,11 +224,10 @@ function setWindowName($ctitle)
     }
 }
 
-function userNameAllValid($userNames)
+function validUserName($userNames)
 {
     try
     {
-        $userNames = $userNames.split(',')
         foreach ($userName in $userNames)
         {
             if (!$script:userInfoMap.Contains($userName.Trim()))
@@ -253,23 +264,21 @@ function indexesAllValid($list, $indexs)
     }
 }
 
-# 格式：userName,password,region,mod
 function validUserInfo($userInfo)
 {
     try
     {
-        $p = $userInfo.split(',')
-        if ($p.Count -lt 3)
+        if ($userInfo.Count -lt 3)
         {
             return $false
         }
 
-        if ([string]::IsNullOrWhiteSpace($p[0]) -or [string]::IsNullOrWhiteSpace($p[1]) -or [string]::IsNullOrWhiteSpace($p[2]))
+        if ([string]::IsNullOrWhiteSpace($userInfo[0]) -or [string]::IsNullOrWhiteSpace($userInfo[1]) -or [string]::IsNullOrWhiteSpace($userInfo[2]))
         {
             return $false
         }
 
-        if (!$script:regionDescMap.Contains($p[2]))
+        if (!$script:regionDescMap.Contains($userInfo[2]))
         {
             return $false
         }
@@ -282,22 +291,22 @@ function validUserInfo($userInfo)
     }
 }
 
-function startFromConfig($startUserList)
+function startFromConfig($userNames)
 {
-    foreach ($startUser in $startUserList)
+    foreach ($userName in $userNames)
     {
-        $startUser = $startUser.trim()
-        Write-Host "`n启动游戏，当前账号：$startUser"
-        Write-Host "启动过程中可以随时通过同时按下 Ctrl + C 终止启动。"
+        $userName = $userName.trim()
+        Write-Host "`n启动游戏，当前账号：$userName"
+        Write-Host "启动过程中可以随时通过同时按下 Ctrl + C 终止启动"
 
         closeHandle
 
-        $password = $script:userInfoMap[$startUser]["password"] | ConvertTo-SecureString
+        $password = $script:userInfoMap[$userName]["password"] | ConvertTo-SecureString
         $cred = New-Object -TypeName System.Management.Automation.PSCredential("JustGiveAName", $password)
         $password = $cred.GetNetworkCredential().Password
-        $region = $script:userInfoMap[$startUser]["region"]
-        $mod = $script:userInfoMap[$startUser]["mod"]
-        $fullScreen = $script:userInfoMap[$startUser]["fullScreen"]
+        $region = $script:userInfoMap[$userName]["region"]
+        $mod = $script:userInfoMap[$userName]["mod"]
+        $fullScreen = $script:userInfoMap[$userName]["fullScreen"]
 
         if ([string]::IsNullOrWhiteSpace($fullScreen) -or $fullScreen -ne "1")
         {
@@ -308,13 +317,13 @@ function startFromConfig($startUserList)
             $fullScreen = ""
         }
 
-        $p = "-username $startUser -password $password -address $region.actual.battle.net $fullScreen -mod $mod"
+        $p = "-username $userName -password $password -address $region.actual.battle.net $fullScreen -mod $mod"
         [Array]$p = $p.Split(' ')
 
-        & $PSScriptRoot\D2R.exe $p
+        & $script:d2rRoot\D2R.exe $p
 
         Start-Sleep -Seconds 2
-        setWindowName $startUser
+        setWindowName $userName
     }
 }
 
@@ -328,52 +337,47 @@ function checkExist($userName)
     return $false
 }
 
-function saveConfig($modules, $key, $value)
-{
-    foreach ($module in $modules)
-    {
-        $null = [System.Text.WinApi]::WritePrivateProfileString($module, $key, $value, $script:userInfoFilePath)
-    }
-}
-
-function main
+function main($op, $p1, $p2)
 {
     clear
     init
-    if ( [string]::IsNullOrWhiteSpace($operation))
+    if ( [string]::IsNullOrWhiteSpace($op))
     {
+        $mainOps = [ordered]@{
+            "1" = @("startAll", "启动所有账号")
+            "2" = @("startBatch", "启动所有指定账号")
+            "3" = @("showAllUser", "展示所有账号")
+            "4" = @("add", "添加账号")
+            "5" = @("update", "修改账号")
+            "6" = @("delete", "删除账号")
+            "7" = @("createStartRef", "创建单个账号启动快捷方式到桌面")
+            "8" = @("createAllStartRef", "创建一键启动全部账号快捷方式到桌面")
+            "9" = @("createUpdateAllRegionRef", "创建一键修改全部账号服区快捷方式到桌面")
+            "0" = @("help", "帮助")
+        }
+
+        Write-Host "`n请选择一个操作，输入对应的序号：`n"
+        $mainOps.GetEnumerator() | ForEach-Object {
+            $message = "    [{0}] {1}" -f $_.key, $_.value[1]
+            Write-Host "$message"
+        }
+        Write-Host "`n"
+
         Do
         {
-            Write-Host "`n请选择一个操作，输入对应的序号："
-            Write-Host "
-    [1]  启动所有账号
-    [2]  启动所有指定账号
-    [3]  展示所有账号
-    [4]  添加账号
-    [5]  修改账号
-    [6]  删除账号
-    [7]  创建单个账号启动快捷方式到桌面
-    [8]  创建一键启动所有账号快捷方式到桌面
-    [0]  帮助
-    `n"
-
-            $op = Read-Host '请输入操作对应的序号'
+            $opIndex = Read-Host '请输入操作对应的序号'
         }
-        while ( !$script:allOperation.ContainsKey($op))
-    }
-    else
-    {
-        $op = $operation
-        $operation = $null
+        while ( !$mainOps.Contains($opIndex))
+        $op = $mainOps[$opIndex][0]
     }
 
-    if ( $script:allOperation.ContainsKey($op))
+    try
     {
-        & $script:allOperation[$op] $param
+        & $op $p1 $p2
     }
-    else
+    catch
     {
-        Write-Host "`n错误:请输入正确的操作类型。"
+        Write-Host "`n错误:请输入正确的操作类型"
         Read-host "点击回车退出..."
         Exit
     }
@@ -432,88 +436,167 @@ function add()
     saveConfig $userName "fullScreen" $userInfo["fullScreen"]
 
     Write-Host "`n添加/修改成功"
-    $tmp = Read-host "点击回车继续..."
+    Read-host "点击回车继续..."
     main
 }
 
-function update()
+function updatePwd($userNames)
 {
-    showUsersInfo
     Do
     {
-        $selectIndexes = Read-Host '请选择要修改的账号，输入对应序号，以空格间隔（输入0代表全选）'
+        $password = Read-Host '请输入新的密码' -AsSecureString
     }
-    while ($selectIndexes -ne 0 -and !(indexesAllValid $script:userList $selectIndexes))
+    while ( [string]::IsNullOrWhiteSpace($password))
 
-    $userNames = @()
-    if ($selectIndexes -eq 0)
-    {
-        $userNames = $script:userList
-    }
-    else
-    {
-        $selectIndexes.Split(' ') | foreach {
-            $userNames += $script:userList[$_ - 1]
-        }
-    }
+    $password = $password | ConvertFrom-SecureString
 
-    Write-Host "`n"
-
-    $ops = @(1, 2, 3, 4)
-    Do
+    foreach ($userName in $userNames)
     {
-        $op = Read-Host '请选择要修改的内容:
-    [1] 密码
-    [2] 服区
-    [3] mod
-    [4] 是否全屏启动
-请选择选项，输入对应的序号'
-    }
-    while ( !(indexesAllValid $ops $op))
-
-    Write-Host "`n"
-    if ($op -eq 1)
-    {
-        Do
-        {
-            $password = Read-Host '请输入新的密码' -AsSecureString
-        }
-        while ( [string]::IsNullOrWhiteSpace($password))
-
-        $password = $password | ConvertFrom-SecureString
-        saveConfig $userNames "password" $password
-    }
-    elseif ($op -eq 2)
-    {
-        showRegions
-        Do
-        {
-            $regionIndex = Read-Host '请选择服区，输入对应的序号'
-        }
-        while ( !(indexesAllValid $script:regionList $regionIndex))
-        saveConfig $userNames "region" $script:regionList[$regionIndex - 1]
-    }
-    elseif ($op -eq 3)
-    {
-        $mod = Read-Host '请输入mod名称，名称取战网配置里-mod之后的所有信息，想删除mod直接按回车'
-        saveConfig $userNames "mod" $mod.Trim()
-    }
-    elseif ($op -eq 4)
-    {
-        $fullScreenConfigs = @("1", "")
-        Do
-        {
-            $fullScreen = Read-Host '是否全屏启动游戏，选项如下:
-    [1] 是
-    [2] 否
-请选择选项，输入对应的序号'
-        }
-        while ( !(indexesAllValid $fullScreenConfigs $fullScreen))
-        saveConfig $userNames "fullScreen" $fullScreenConfigs[$fullScreen - 1]
+        saveConfig $userName "password" $password
     }
 
     Write-Host "`n修改完成"
-    $tmp = Read-host "点击回车继续..."
+    Read-host "点击回车继续..."
+}
+
+function updateRegion($userNames)
+{
+    if ($userNames -eq "`$0")
+    {
+        $userNames = $script:userList
+    }
+
+    showRegions
+    Do
+    {
+        $regionIndex = Read-Host '请选择服区，输入对应的序号'
+    }
+    while ( !(indexesAllValid $script:regionList $regionIndex))
+
+    foreach ($userName in $userNames)
+    {
+        saveConfig $userName "region" $script:regionList[$regionIndex - 1]
+    }
+
+    Write-Host "`n修改完成"
+    Read-host "点击回车继续..."
+}
+
+function updateMod($userNames)
+{
+    $mod = Read-Host '请输入mod名称，名称取战网配置里-mod之后的所有信息，想删除mod直接按回车'
+
+    foreach ($userName in $userNames)
+    {
+        saveConfig $userName "mod" $mod.Trim()
+    }
+
+    Write-Host "`n修改完成"
+    Read-host "点击回车继续..."
+}
+
+function updateFullScreen($userNames)
+{
+    $fullScreenConfigs = @("1", "")
+    Write-Host "`n"
+    Do
+    {
+        $fullScreen = Read-Host "是否全屏启动游戏，选项如下:
+
+    [1] 是
+    [2] 否
+
+请选择选项，输入对应的序号"
+    }
+    while ( !(indexesAllValid $fullScreenConfigs $fullScreen))
+
+    foreach ($userName in $userNames)
+    {
+        saveConfig $userName "fullScreen" $fullScreenConfigs[$fullScreen - 1]
+    }
+
+    Write-Host "`n修改完成"
+    Read-host "点击回车继续..."
+}
+
+function update($userNames, $op)
+{
+    if (![string]::IsNullOrWhiteSpace($userNames))
+    {
+        if ($userNames -eq "`$0")
+        {
+            $userNames = $script:userList
+        }
+        else
+        {
+            $userNames = $userNames.split(',')
+            if (!(validUserName $userNames))
+            {
+                Write-Host "`n错误:请输入正确的账号"
+                Read-host "点击回车退出..."
+                Exit
+            }
+        }
+    }
+    else
+    {
+        showUsersInfo
+        Do
+        {
+            $selectIndexes = Read-Host '请选择要修改的账号，输入对应序号，以空格间隔（输入0代表全选）'
+        }
+        while ($selectIndexes -ne 0 -and !(indexesAllValid $script:userList $selectIndexes))
+
+        $userNames = @()
+        if ($selectIndexes -eq 0)
+        {
+            $userNames = $script:userList
+        }
+        else
+        {
+            $selectIndexes.Split(' ') | foreach {
+                $userNames += $script:userList[$_ - 1]
+            }
+        }
+    }
+
+    $updateOps = [ordered]@{
+        "1" = @("updatePwd", "密码")
+        "2" = @("updateRegion", "服区")
+        "3" = @("updateMod", "mod")
+        "4" = @("updateFullScreen", "是否全屏启动")
+    }
+
+    if (![string]::IsNullOrWhiteSpace($op))
+    {
+        if (!$updateOps.ContainsKey($op))
+        {
+            Write-Host "`n错误:请输入正确的操作"
+            Read-host "点击回车退出..."
+            Exit
+        }
+    }
+    else
+    {
+        Write-Host "`n"
+        Write-Host "可修改的内容如下:"
+        Write-Host "`n"
+        $updateOps.GetEnumerator() | ForEach-Object {
+            $message = "    [{0}] {1}" -f $_.key, $_.value[1]
+            Write-Host "$message"
+        }
+        Write-Host "`n"
+        Do
+        {
+            $opIndex = Read-Host "请选择选项，输入对应的序号:"
+        }
+        while ( !$updateOps.Contains($opIndex))
+        $op = $updateOps[$opIndex][0]
+    }
+
+    & $op $userNames
+    Write-Host "`n"
+
     main
 }
 
@@ -532,20 +615,15 @@ function startAll
     }
 }
 
-# 格式：userName1,userName2...
-function start($selectUsers)
+function startBatch($userNames)
 {
     if ($script:userList.Count -gt 0)
     {
-        if (![string]::IsNullOrWhiteSpace($selectUsers))
+        if (![string]::IsNullOrWhiteSpace($userNames))
         {
-            if (userNameAllValid $selectUsers)
+            if (!(validUserName $userNames))
             {
-                $selectUsers = $selectUsers.split(',')
-            }
-            else
-            {
-                Write-Host "`n错误:请输入正确的启动账号"
+                Write-Host "`n错误:请输入正确的账号"
                 Read-host "点击回车退出..."
                 Exit
             }
@@ -559,13 +637,13 @@ function start($selectUsers)
             }
             while ( !(indexesAllValid $script:userList $selectIndexes))
 
-            $selectUsers = @()
+            $userNames = @()
             $selectIndexes.Split(' ') | foreach {
-                $selectUsers += $script:userList[$_ - 1]
+                $userNames += $script:userList[$_ - 1]
             }
         }
 
-        startFromConfig $selectUsers
+        startFromConfig $userNames
     }
     else
     {
@@ -581,7 +659,12 @@ function delete($userNames)
     {
         if (![string]::IsNullOrWhiteSpace($userNames))
         {
-            $userNames = $userNames.split(',')
+            if (!(validUserName $userNames))
+            {
+                Write-Host "`n错误:请输入正确的账号"
+                Read-host "点击回车退出..."
+                Exit
+            }
         }
         else
         {
@@ -601,7 +684,7 @@ function delete($userNames)
         foreach ($userName in $userNames)
         {
             $userName = $userName.Trim()
-            $null = [System.Text.WinApi]::WritePrivateProfileSection($userName, $null, $script:userInfoFilePath)
+            deleteModule $userName
         }
 
         Write-Host "`n删除完成"
@@ -615,17 +698,13 @@ function delete($userNames)
     main
 }
 
-function createRef($selectUsers)
+function createStartRef($userNames)
 {
     if ($script:userList.Count -gt 0)
     {
-        if (![string]::IsNullOrWhiteSpace($selectUsers))
+        if (![string]::IsNullOrWhiteSpace($userNames))
         {
-            if (userNameAllValid $selectUsers)
-            {
-                $selectUsers = $selectUsers.split(',')
-            }
-            else
+            if (!(validUserName $userNames))
             {
                 Write-Host "`n错误:请输入正确的账号"
                 Read-host "点击回车退出..."
@@ -641,23 +720,23 @@ function createRef($selectUsers)
             }
             while ( !(indexesAllValid $script:userList $selectIndexes))
 
-            $selectUsers = @()
+            $userNames = @()
             $selectIndexes.Split(' ') | foreach {
-                $selectUsers += $script:userList[$_ - 1]
+                $userNames += $script:userList[$_ - 1]
             }
         }
 
-        foreach ($selectUser in $selectUsers)
+        foreach ($userName in $userNames)
         {
-            $selectUser = $selectUser.trim()
+            $userName = $userName.trim()
             $wshShell = New-Object -comObject WScript.Shell
             $desktop = [System.Environment]::GetFolderPath('Desktop')
-            $shortcut = $wshShell.CreateShortcut("$desktop\$selectUser.lnk")
+            $shortcut = $wshShell.CreateShortcut("$desktop\$userName.lnk")
             $targetPath = "C:\Windows\System32\cmd.exe"
-            $batchPath = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypass -File `"" + $PSCommandPath + "`" 2 $selectUser"
+            $batchPath = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypass -File `"" + $PSCommandPath + "`" startBatch $userName"
             $shortcut.Arguments = "/c $batchPath"
             $shortcut.TargetPath = $targetPath
-            $shortcut.IconLocation = "$PSScriptRoot\D2R.exe"
+            $shortcut.IconLocation = "$script:d2rRoot\D2R.exe"
             $shortcut.Save()
         }
         Write-Host "`n创建快捷方式完成"
@@ -671,7 +750,7 @@ function createRef($selectUsers)
     main
 }
 
-function createBatchRef()
+function createAllStartRef()
 {
     if ($script:userList.Count -gt 0)
     {
@@ -679,10 +758,10 @@ function createBatchRef()
         $desktop = [System.Environment]::GetFolderPath('Desktop')
         $shortcut = $wshShell.CreateShortcut("$desktop\一键全部启动.lnk")
         $targetPath = "C:\Windows\System32\cmd.exe"
-        $batchPath = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypass -File `"" + $PSCommandPath + "`" 1"
+        $batchPath = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypass -File `"" + $PSCommandPath + "`" startAll"
         $shortcut.Arguments = "/c $batchPath"
         $shortcut.TargetPath = $targetPath
-        $shortcut.IconLocation = "$PSScriptRoot\D2R.exe"
+        $shortcut.IconLocation = "$script:d2rRoot\D2R.exe"
         $shortcut.Save()
 
         Write-Host "`n创建一键全部启动快捷方式完成"
@@ -696,7 +775,32 @@ function createBatchRef()
     main
 }
 
-function show
+function createUpdateAllRegionRef()
+{
+    if ($script:userList.Count -gt 0)
+    {
+        $wshShell = New-Object -comObject WScript.Shell
+        $desktop = [System.Environment]::GetFolderPath('Desktop')
+        $shortcut = $wshShell.CreateShortcut("$desktop\一键修改服区.lnk")
+        $targetPath = "C:\Windows\System32\cmd.exe"
+        $batchPath = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypass -File `"" + $PSCommandPath + "`" updateRegion `$0"
+        $shortcut.Arguments = "/c $batchPath"
+        $shortcut.TargetPath = $targetPath
+        $shortcut.IconLocation = "$script:d2rRoot\D2R.exe"
+        $shortcut.Save()
+
+        Write-Host "`n创建一键修改服区快捷方式完成"
+    }
+    else
+    {
+        Write-Host "`n错误:还未添加过账号，请先添加账号"
+    }
+
+    Read-host "点击回车继续..."
+    main
+}
+
+function showAllUser
 {
     if ($script:userList.Count -gt 0)
     {
@@ -714,7 +818,8 @@ function show
 function help
 {
     Write-Host "`n"
-    Write-Host "    帮助说明：`n"
+    Write-Host "    帮助说明："
+    Write-Host "`n"
     Write-Host "    [1] 首次使用登录器，请先添加账号，把所有个人账号配置依次录入；"
     Write-Host "    [2] 添加或修改账号时，若mod配置需携带-txt后缀，则把-txt作为mod名字一并填入，如：hongye -txt；"
     Write-Host "    [3] 对于新建快捷方式到桌面，可以选择把所有账号各建一个快捷方式，也可以建一个一键启动所有账号的快捷方式；"
@@ -730,16 +835,5 @@ function help
     main
 }
 
-$script:allOperation = @{
-    "1" = (gi function:startAll)
-    "2" = (gi function:start)
-    "3" = (gi function:show)
-    "4" = (gi function:add)
-    "5" = (gi function:update)
-    "6" = (gi function:delete)
-    "7" = (gi function:createRef)
-    "8" = (gi function:createBatchRef)
-    "0" = (gi function:help)
-}
+main $operation $param1 $param2
 
-main

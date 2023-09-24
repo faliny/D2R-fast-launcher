@@ -19,7 +19,7 @@ github地址：https://github.com/faliny/D2R-fast-launcher
 * 使用同一台电脑多开的用户
 
 # 使用方法
-1. 将files目录下的所有文件复制到暗黑2游戏的主目录下
+1. 将files目录下所有文件复制到暗黑2游戏的主目录下
 2. 双击打开登录管理器，根据提示将账号信息依次录入
 3. 创建登录快捷方式到桌面，打开对应快捷方式启动游戏
 
@@ -49,9 +49,17 @@ github地址：https://github.com/faliny/D2R-fast-launcher
 
 ![创建一键启动快捷方式到桌面](screenshot/addLink2.png)
 
-6、桌面快捷方式
+6、创建一键修改服区快捷方式到桌面
+
+![创建一键修改服区快捷方式到桌面](screenshot/addLink3.png)
+
+7、桌面快捷方式
 
 ![桌面快捷方式](screenshot/link.png)
+
+8、本地用户配置文件
+
+![本地用户配置文件](screenshot/config.png)
 
 # 申明
 非盈利性质工具，任何风险请自行承担
