@@ -61,6 +61,9 @@ github地址：https://github.com/faliny/D2R-fast-launcher
 
 ![本地用户配置文件](screenshot/config.png)
 
+# 发布说明
+* [历史版本](https://github.com/faliny/D2R-fast-launcher/releases)
+  
 # 申明
 非盈利性质工具，任何风险请自行承担
   
