@@ -24,7 +24,7 @@ github地址：https://github.com/faliny/D2R-fast-launcher
 3. 在登录管理器里选择创建登录快捷方式到桌面，打开对应快捷方式启动游戏
 
 # 下载方式
-打开[工具下载页面](https://github.com/faliny/D2R-fast-launcher/releases)
+打开[工具下载页面](https://github.com/faliny/D2R-fast-launcher/releases?_blank)
 ，选择要下载的版本，展开Assets，随便选择一个Source code下载即可。
 
 ![下载界面](screenshot/download.png)
