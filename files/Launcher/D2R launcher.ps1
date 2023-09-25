@@ -30,7 +30,7 @@ Add-Type -Namespace System.Text -Name WinApi -MemberDefinition @"
 
 clear
 
-$script:d2rRoot = $PSScriptRoot.Substring(0, $PSScriptRoot.LastIndexOf('\'))
+$script:d2rRoot = $PSScriptRoot.Substring(0,$PSScriptRoot.LastIndexOf('\'))
 $script:userInfoFilePath = $PSScriptRoot + "\user_info.ini"
 $script:defaultRegion = "kr"
 $script:userList = New-Object System.Collections.ArrayList
@@ -353,10 +353,11 @@ function main($op, $p1, $p2)
             "7" = @("createStartRef", "创建单个账号启动快捷方式到桌面")
             "8" = @("createAllStartRef", "创建一键启动全部账号快捷方式到桌面")
             "9" = @("createUpdateAllRegionRef", "创建一键修改全部账号服区快捷方式到桌面")
-            "0" = @("help", "帮助")
+            "0" = @("createLoginManagerRef", "创建登录管理器快捷方式到桌面")
+            "H" = @("help", "帮助")
         }
 
-        Write-Host "`n请选择一个操作，输入对应的序号：`n"
+        Write-Host "`n请选择一个操作，输入对应的编号：`n"
         $mainOps.GetEnumerator() | ForEach-Object {
             $message = "    [{0}] {1}" -f $_.key, $_.value[1]
             Write-Host "$message"
@@ -365,7 +366,8 @@ function main($op, $p1, $p2)
 
         Do
         {
-            $opIndex = Read-Host '请输入操作对应的序号'
+            $opIndex = Read-Host '请输入操作对应的编号，大小写均可'
+            $null = $opIndex.ToUpper()
         }
         while ( !$mainOps.Contains($opIndex))
         $op = $mainOps[$opIndex][0]
@@ -698,6 +700,19 @@ function delete($userNames)
     main
 }
 
+function createRefToDesktop($refName, $iconPath, $params)
+{
+    $wshShell = New-Object -comObject WScript.Shell
+    $desktop = [System.Environment]::GetFolderPath('Desktop')
+    $shortcut = $wshShell.CreateShortcut("$desktop\$refName.lnk")
+    $targetPath = "C:\Windows\System32\cmd.exe"
+    $batchPath = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypass -File `"" + $PSCommandPath + "`" $params"
+    $shortcut.Arguments = "/c $batchPath"
+    $shortcut.TargetPath = $targetPath
+    $shortcut.IconLocation = "$iconPath"
+    $shortcut.Save()
+}
+
 function createStartRef($userNames)
 {
     if ($script:userList.Count -gt 0)
@@ -728,18 +743,9 @@ function createStartRef($userNames)
 
         foreach ($userName in $userNames)
         {
-            $userName = $userName.trim()
-            $wshShell = New-Object -comObject WScript.Shell
-            $desktop = [System.Environment]::GetFolderPath('Desktop')
-            $shortcut = $wshShell.CreateShortcut("$desktop\$userName.lnk")
-            $targetPath = "C:\Windows\System32\cmd.exe"
-            $batchPath = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypass -File `"" + $PSCommandPath + "`" startBatch $userName"
-            $shortcut.Arguments = "/c $batchPath"
-            $shortcut.TargetPath = $targetPath
-            $shortcut.IconLocation = "$script:d2rRoot\D2R.exe"
-            $shortcut.Save()
+            createRefToDesktop "$userName" "$script:d2rRoot\D2R.exe" "startBatch $userName"
         }
-        Write-Host "`n创建快捷方式完成"
+        Write-Host "`n创建单个账号快速启动快捷方式完成"
     }
     else
     {
@@ -754,16 +760,7 @@ function createAllStartRef()
 {
     if ($script:userList.Count -gt 0)
     {
-        $wshShell = New-Object -comObject WScript.Shell
-        $desktop = [System.Environment]::GetFolderPath('Desktop')
-        $shortcut = $wshShell.CreateShortcut("$desktop\一键全部启动.lnk")
-        $targetPath = "C:\Windows\System32\cmd.exe"
-        $batchPath = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypass -File `"" + $PSCommandPath + "`" startAll"
-        $shortcut.Arguments = "/c $batchPath"
-        $shortcut.TargetPath = $targetPath
-        $shortcut.IconLocation = "$script:d2rRoot\D2R.exe"
-        $shortcut.Save()
-
+        createRefToDesktop "一键全部启动" "$script:d2rRoot\D2R.exe" "startAll"
         Write-Host "`n创建一键全部启动快捷方式完成"
     }
     else
@@ -779,16 +776,7 @@ function createUpdateAllRegionRef()
 {
     if ($script:userList.Count -gt 0)
     {
-        $wshShell = New-Object -comObject WScript.Shell
-        $desktop = [System.Environment]::GetFolderPath('Desktop')
-        $shortcut = $wshShell.CreateShortcut("$desktop\一键修改服区.lnk")
-        $targetPath = "C:\Windows\System32\cmd.exe"
-        $batchPath = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -ExecutionPolicy Bypass -File `"" + $PSCommandPath + "`" updateRegion `$0"
-        $shortcut.Arguments = "/c $batchPath"
-        $shortcut.TargetPath = $targetPath
-        $shortcut.IconLocation = "$script:d2rRoot\D2R.exe"
-        $shortcut.Save()
-
+        createRefToDesktop "一键修改服区" "$script:d2rRoot\D2R.exe" "updateRegion `$0"
         Write-Host "`n创建一键修改服区快捷方式完成"
     }
     else
@@ -796,6 +784,15 @@ function createUpdateAllRegionRef()
         Write-Host "`n错误:还未添加过账号，请先添加账号"
     }
 
+    Read-host "点击回车继续..."
+    main
+}
+
+function createLoginManagerRef()
+{
+    createRefToDesktop "登录管理器" "$script:d2rRoot\Diablo II Resurrected Launcher.exe"
+
+    Write-Host "`n创建登录管理器快捷方式完成"
     Read-host "点击回车继续..."
     main
 }
@@ -825,7 +822,7 @@ function help
     Write-Host "    [3] 对于新建快捷方式到桌面，可以选择把所有账号各建一个快捷方式，也可以建一个一键启动所有账号的快捷方式；"
     Write-Host "    [4] 新建的启动单个账号快捷方式不会被后续添加/修改账号配置所影响，只要账号不删除就可以一直使用；"
     Write-Host "    [5] 新建的一键全部启动快捷方式不会被后续所有的账号操作所影响，录入过几个账号就会启动几个；"
-    Write-Host "    [6] 本启动器的原理不涉及作弊，理论上没有封号风险。"
+    Write-Host "    [6] 登录器的原理不涉及作弊，理论上没有封号风险。"
 
     Write-Host "`n"
     Write-Host "    非盈利性质工具，任何风险请自行承担"
