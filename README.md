@@ -9,8 +9,7 @@ github地址：https://github.com/faliny/D2R-fast-launcher
 * 通过登录器，能针对录入账号分别生成单号启动快捷方式，也能生成一键全部启动快捷方式，不限制账号个数；
 * 登录器的原理不涉及作弊，理论上没有封号风险。
 
-这是本人第一次接触PowerShell，部分基础功能借鉴了Chobotz的源码（github地址：https://github.com/Chobotz/D2R-multiclient-tools）
-若发现bug或有改进建议，请留言交流。
+这是本人第一次接触PowerShell，部分基础功能借鉴了Chobotz的源码（github地址：https://github.com/Chobotz/D2R-multiclient-tools ）若发现bug或有改进建议，请留言交流。
 
 另附暗黑2赛季专家交流群：107824969
 
