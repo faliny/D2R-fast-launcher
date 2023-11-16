@@ -832,5 +832,7 @@ function help
     main
 }
 
+$host.UI.RawUI.WindowTitle="°µºÚ2¿ì½ÝµÇÂ¼Æ÷ by ±ùÍÜ"
+
 main $operation $param1 $param2
 
